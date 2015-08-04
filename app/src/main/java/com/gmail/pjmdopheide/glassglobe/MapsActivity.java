@@ -38,25 +38,33 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
         setUpMapIfNeeded();
 
         mMap.setOnMarkerDragListener(this);
+        mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
+            @Override
+            public void onMapClick(LatLng point) {
+                mMarker2.setPosition(point);
+                toPosition = point;
+            }
+        });
 
         final Button seeThrough = (Button) findViewById(R.id.seeTroughButton);
         seeThrough.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-                Context context = getApplicationContext();
-                //CharSequence text = "Hello toast!";
-                //CharSequence text = (CharSequence)mMarker.getPosition().toString();
                 calculateAntipodalPoints();
-                CharSequence text = "Original: " + toPosition.toString() + "\r" + "Anti: " + latAnti + " " + lngAnti;
-                int duration = Toast.LENGTH_SHORT;
 
-                Toast toast = Toast.makeText(context, text, duration);
-                toast.show();
+                Toast.makeText(
+                        getApplicationContext(),
+                        "Original: " + toPosition.toString() + "\r" + "Anti: " + latAnti + " "
+                                + lngAnti, Toast.LENGTH_LONG).show();
 
                 // If there is alread a marker remove it
                 if (mMarker != null) {
                     mMarker.remove();
                 }
-                mMarker = mMap.addMarker(new MarkerOptions().position(new LatLng(latAnti, lngAnti)).title("Marker2").icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)));
+                mMarker = mMap.addMarker(new MarkerOptions()
+                        .position(new LatLng(latAnti, lngAnti))
+                        .title("Marker2")
+                        .icon(BitmapDescriptorFactory
+                                .defaultMarker(BitmapDescriptorFactory.HUE_AZURE)));
 
                 // Go to newly created marker
                 mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(mMarker.getPosition(), 1));
@@ -113,7 +121,10 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
      */
     private void setUpMap() {
 //        mMap.addMarker(new MarkerOptions().position(new LatLng(0, 0)).title("Marker"));
-        mMarker2 = mMap.addMarker(new MarkerOptions().position(new LatLng(0, 0)).title("Marker").draggable(true));
+        mMarker2 = mMap.addMarker(new MarkerOptions()
+                .position(new LatLng(0, 0))
+                .title("Marker")
+                .draggable(true));
         toPosition = mMarker2.getPosition();
     }
 
