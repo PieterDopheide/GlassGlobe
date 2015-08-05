@@ -1,8 +1,15 @@
 package com.gmail.pjmdopheide.glassglobe;
 
+import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.IntentSender;
 import android.location.Location;
+import android.location.LocationManager;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.support.v4.app.FragmentActivity;
 import android.util.Log;
 import android.view.View;
@@ -37,6 +44,7 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
     public static final String TAG = MapsActivity.class.getSimpleName();
     private final static int CONNECTION_FAILURE_RESOLUTION_REQUEST = 9000;
     private LocationRequest mLocationRequest;
+//    private Activity activity = this.activity;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,19 +53,55 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
         setUpMapIfNeeded();
 
         mMap.getUiSettings().setZoomControlsEnabled(false);
+        mMap.getUiSettings().setMapToolbarEnabled(false);
         mMap.setMyLocationEnabled(true);
 
         // Create the LocationRequest object
         mLocationRequest = LocationRequest.create()
                 .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
                 .setInterval(10 * 1000)        // 10 seconds, in milliseconds
-                .setFastestInterval(1 * 1000); // 1 second, in milliseconds
+                .setFastestInterval(1 * 1000) // 1 second, in milliseconds
+                .setNumUpdates(1);           // only update location once
+
+        // Listen to clicks on the location button
+        final Context context = this;
+        mMap.setOnMyLocationButtonClickListener(new GoogleMap.OnMyLocationButtonClickListener() {
+            @Override
+            public boolean onMyLocationButtonClick() {
+                LocationManager mgr = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+                if (!mgr.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+//                    Toast.makeText(context, "GPS is disabled!", Toast.LENGTH_SHORT).show();
+                    // notify user
+                    AlertDialog.Builder dialog = new AlertDialog.Builder(context);
+                    dialog.setMessage(R.string.gps_not_enabled);
+                    dialog.setPositiveButton(context.getResources().getString(R.string.open_location_settings), new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface paramDialogInterface, int paramInt) {
+                            // TODO Auto-generated method stub
+                            Intent myIntent = new Intent( Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+                            context.startActivity(myIntent);
+                            //get gps
+                        }
+                    });
+                    dialog.setNegativeButton(context.getString(R.string.Cancel), new DialogInterface.OnClickListener() {
+
+                        @Override
+                        public void onClick(DialogInterface paramDialogInterface, int paramInt) {
+                            // TODO Auto-generated method stub
+
+                        }
+                    });
+                    dialog.show();
+                } // move marker to users location?
+                return false;
+            }
+        });
 
         mMap.setOnMarkerDragListener(this);
         mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener(){
-@Override
-public void onMapClick(LatLng point){
-        mMarker2.setPosition(point);
+            @Override
+            public void onMapClick(LatLng point){
+                mMarker2.setPosition(point);
                 toPosition = point;
             }
         });
@@ -67,10 +111,10 @@ public void onMapClick(LatLng point){
             public void onClick(View v) {
                 calculateAntipodalPoints();
 
-                Toast.makeText(
-                        getApplicationContext(),
-                        "Original: " + toPosition.toString() + "\r" + "Anti: " + latAnti + " "
-                                + lngAnti, Toast.LENGTH_LONG).show();
+//                Toast.makeText(
+//                        getApplicationContext(),
+//                        "Original: " + toPosition.toString() + "\r" + "Anti: " + latAnti + " "
+//                                + lngAnti, Toast.LENGTH_LONG).show();
 
                 // If there is already a marker remove it
                 if (mMarker != null) {
@@ -78,7 +122,7 @@ public void onMapClick(LatLng point){
                 }
                 mMarker = mMap.addMarker(new MarkerOptions()
                         .position(new LatLng(latAnti, lngAnti))
-                        .title("Marker2")
+                        .title("Other side")
                         .icon(BitmapDescriptorFactory
                                 .defaultMarker(BitmapDescriptorFactory.HUE_AZURE)));
 
@@ -89,8 +133,8 @@ public void onMapClick(LatLng point){
 
         final Button startLocation = (Button)findViewById(R.id.startLocationButton);
         startLocation.setOnClickListener(new View.OnClickListener(){
-public void onClick(View v){
-        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(mMarker2.getPosition(), 1));
+            public void onClick(View v){
+                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(mMarker2.getPosition(), 1));
             }
         });
 
@@ -155,7 +199,7 @@ public void onClick(View v){
 //        mMap.addMarker(new MarkerOptions().position(new LatLng(0, 0)).title("Marker"));
         mMarker2 = mMap.addMarker(new MarkerOptions()
                 .position(new LatLng(0, 0))
-                .title("Marker")
+                .title("Starting point")
                 .draggable(true));
         toPosition = mMarker2.getPosition();
     }
@@ -227,7 +271,7 @@ public void onClick(View v){
 //        mMap.addMarker(options);
         mMarker2.setPosition(latLng);
         toPosition = mMarker2.getPosition();
-//        mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
+        mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
     }
 
     @Override

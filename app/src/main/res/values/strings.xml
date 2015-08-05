@@ -3,4 +3,7 @@
     <string name="title_activity_maps">Glass Globe</string>
     <string name="see_trough">Other side</string>
     <string name="start_location">Starting point</string>
+    <string name="open_location_settings">Location settings</string>
+    <string name="Cancel">Cancel</string>
+    <string name="gps_not_enabled">GPS not enabled</string>
 </resources>
