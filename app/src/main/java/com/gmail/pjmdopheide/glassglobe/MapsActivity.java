@@ -215,7 +215,7 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
         // Longitude:
         // if positive, 180 - longitude, if negative 180 + longitude
         // switch E and W i.e. 76 becomes -76
-        if (Math.signum(lngAnti) == 1) {
+        if (Math.signum(lngAnti) == 1 || Math.signum(lngAnti) == 0) {
             lngAnti = 180 - lngAnti;
             lngAnti *= -1;
         } else if (Math.signum(lngAnti) == -1) {
@@ -233,10 +233,10 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
     @Override
     public void onMarkerDragEnd(Marker marker) {
         toPosition = marker.getPosition();
-        Toast.makeText(
-                getApplicationContext(),
-                "Marker " + marker.getTitle() + " dragged from " + fromPosition
-                        + " to " + toPosition, Toast.LENGTH_LONG).show();
+//        Toast.makeText(
+//                getApplicationContext(),
+//                "Marker " + marker.getTitle() + " dragged from " + fromPosition
+//                        + " to " + toPosition, Toast.LENGTH_LONG).show();
     }
 
     @Override
