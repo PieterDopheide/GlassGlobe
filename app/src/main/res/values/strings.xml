@@ -2,5 +2,5 @@
     <string name="app_name">Glass Globe</string>
     <string name="title_activity_maps">Glass Globe</string>
     <string name="see_trough">Other side</string>
-    <string name="start_location">Start location</string>
+    <string name="start_location">Starting point</string>
 </resources>

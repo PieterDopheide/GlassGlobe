@@ -1,15 +1,19 @@
 package com.gmail.pjmdopheide.glassglobe;
 
-import java.lang.Math;
-
-import android.content.Context;
-import android.support.v4.app.FragmentActivity;
+import android.content.IntentSender;
+import android.location.Location;
 import android.os.Bundle;
+import android.support.v4.app.FragmentActivity;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
 
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.location.LocationListener;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
@@ -18,18 +22,21 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
-public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarkerDragListener {
+public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarkerDragListener,
+        GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationListener {
     // TODO Prevent destruction when device tilted
 
     private GoogleMap mMap; // Might be null if Google Play services APK is not available.
-    private Button mSeeThrough;
-    private Button mStartLocation;
     private Marker mMarker;
     private Marker mMarker2;
     private static LatLng fromPosition;
     private static LatLng toPosition;
     private static int latAnti;
     private static int lngAnti;
+    private GoogleApiClient mGoogleApiClient;
+    public static final String TAG = MapsActivity.class.getSimpleName();
+    private final static int CONNECTION_FAILURE_RESOLUTION_REQUEST = 9000;
+    private LocationRequest mLocationRequest;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,11 +44,20 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
         setContentView(R.layout.activity_maps);
         setUpMapIfNeeded();
 
+        mMap.getUiSettings().setZoomControlsEnabled(false);
+        mMap.setMyLocationEnabled(true);
+
+        // Create the LocationRequest object
+        mLocationRequest = LocationRequest.create()
+                .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
+                .setInterval(10 * 1000)        // 10 seconds, in milliseconds
+                .setFastestInterval(1 * 1000); // 1 second, in milliseconds
+
         mMap.setOnMarkerDragListener(this);
-        mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
-            @Override
-            public void onMapClick(LatLng point) {
-                mMarker2.setPosition(point);
+        mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener(){
+@Override
+public void onMapClick(LatLng point){
+        mMarker2.setPosition(point);
                 toPosition = point;
             }
         });
@@ -56,7 +72,7 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
                         "Original: " + toPosition.toString() + "\r" + "Anti: " + latAnti + " "
                                 + lngAnti, Toast.LENGTH_LONG).show();
 
-                // If there is alread a marker remove it
+                // If there is already a marker remove it
                 if (mMarker != null) {
                     mMarker.remove();
                 }
@@ -71,18 +87,34 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
             }
         });
 
-        final Button startLocation = (Button) findViewById(R.id.startLocationButton);
-        startLocation.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(mMarker2.getPosition(), 1));
+        final Button startLocation = (Button)findViewById(R.id.startLocationButton);
+        startLocation.setOnClickListener(new View.OnClickListener(){
+public void onClick(View v){
+        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(mMarker2.getPosition(), 1));
             }
         });
+
+        mGoogleApiClient = new GoogleApiClient.Builder(this)
+                .addConnectionCallbacks(this)
+                .addOnConnectionFailedListener(this)
+                .addApi(LocationServices.API)
+                .build();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
         setUpMapIfNeeded();
+        mGoogleApiClient.connect();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (mGoogleApiClient.isConnected()) {
+            LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient, this);
+            mGoogleApiClient.disconnect();
+        }
     }
 
     /**
@@ -131,12 +163,10 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
     private void calculateAntipodalPoints() {
         latAnti = (int)toPosition.latitude;
         lngAnti = (int)toPosition.longitude;
+
         // Source: http://boards.straightdope.com/sdmb/showthread.php?t=437906
         // Change latitude to opposite i.e. 76 becomes -76
         latAnti *= -1;
-        // For longitude:
-        // 1. 180 - longitude
-        // 2. switch E and W (not needed if you are at exactly 0 or 180)
 
         // Longitude:
         // if positive, 180 - longitude, if negative 180 + longitude
@@ -169,5 +199,58 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
     public void onMarkerDragStart(Marker marker) {
         fromPosition = marker.getPosition();
         Log.d(getClass().getSimpleName(), "Drag start at: " + fromPosition);
+    }
+
+    // Source: http://blog.teamtreehouse.com/beginners-guide-location-android
+    @Override
+    public void onConnected(Bundle bundle) {
+        Log.i(TAG, "Location services connected.");
+
+        Location location = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
+        if (location == null) {
+            LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
+        }
+        else {
+            handleNewLocation(location);
+        };
+    }
+
+    private void handleNewLocation(Location location) {
+        Log.d(TAG, location.toString());
+
+        double currentLatitude = location.getLatitude();
+        double currentLongitude = location.getLongitude();
+        LatLng latLng = new LatLng(currentLatitude, currentLongitude);
+//        MarkerOptions options = new MarkerOptions()
+//                .position(latLng)
+//                .title("I am here!");
+//        mMap.addMarker(options);
+        mMarker2.setPosition(latLng);
+        toPosition = mMarker2.getPosition();
+//        mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
+    }
+
+    @Override
+    public void onConnectionSuspended(int i) {
+        Log.i(TAG, "Location services suspended. Please reconnect.");
+    }
+
+    @Override
+    public void onConnectionFailed(ConnectionResult connectionResult) {
+        if (connectionResult.hasResolution()) {
+            try {
+                // Start an Activity that tries to resolve the error
+                connectionResult.startResolutionForResult(this, CONNECTION_FAILURE_RESOLUTION_REQUEST);
+            } catch (IntentSender.SendIntentException e) {
+                e.printStackTrace();
+            }
+        } else {
+            Log.i(TAG, "Location services connection failed with code " + connectionResult.getErrorCode());
+        }
+    }
+
+    @Override
+    public void onLocationChanged(Location location) {
+        handleNewLocation(location);
     }
 }
