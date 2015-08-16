@@ -1,6 +1,5 @@
 package com.gmail.pjmdopheide.glassglobe;
 
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -14,7 +13,6 @@ import android.support.v4.app.FragmentActivity;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
-import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -32,6 +30,7 @@ import com.google.android.gms.maps.model.MarkerOptions;
 public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarkerDragListener,
         GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationListener {
     // TODO Prevent destruction when device tilted
+    // For now only portrait orientation is allowed through the manifest
 
     private GoogleMap mMap; // Might be null if Google Play services APK is not available.
     private Marker mMarker;
@@ -44,7 +43,6 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
     public static final String TAG = MapsActivity.class.getSimpleName();
     private final static int CONNECTION_FAILURE_RESOLUTION_REQUEST = 9000;
     private LocationRequest mLocationRequest;
-//    private Activity activity = this.activity;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,7 +68,6 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
             public boolean onMyLocationButtonClick() {
                 LocationManager mgr = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
                 if (!mgr.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
-//                    Toast.makeText(context, "GPS is disabled!", Toast.LENGTH_SHORT).show();
                     // notify user
                     AlertDialog.Builder dialog = new AlertDialog.Builder(context);
                     dialog.setMessage(R.string.gps_not_enabled);
@@ -110,11 +107,6 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
         seeThrough.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 calculateAntipodalPoints();
-
-//                Toast.makeText(
-//                        getApplicationContext(),
-//                        "Original: " + toPosition.toString() + "\r" + "Anti: " + latAnti + " "
-//                                + lngAnti, Toast.LENGTH_LONG).show();
 
                 // If there is already a marker remove it
                 if (mMarker != null) {
@@ -196,7 +188,6 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
      * This should only be called once and when we are sure that {@link #mMap} is not null.
      */
     private void setUpMap() {
-//        mMap.addMarker(new MarkerOptions().position(new LatLng(0, 0)).title("Marker"));
         mMarker2 = mMap.addMarker(new MarkerOptions()
                 .position(new LatLng(0, 0))
                 .title("Starting point")
@@ -233,10 +224,6 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
     @Override
     public void onMarkerDragEnd(Marker marker) {
         toPosition = marker.getPosition();
-//        Toast.makeText(
-//                getApplicationContext(),
-//                "Marker " + marker.getTitle() + " dragged from " + fromPosition
-//                        + " to " + toPosition, Toast.LENGTH_LONG).show();
     }
 
     @Override
@@ -265,12 +252,10 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
         double currentLatitude = location.getLatitude();
         double currentLongitude = location.getLongitude();
         LatLng latLng = new LatLng(currentLatitude, currentLongitude);
-//        MarkerOptions options = new MarkerOptions()
-//                .position(latLng)
-//                .title("I am here!");
-//        mMap.addMarker(options);
+
         mMarker2.setPosition(latLng);
         toPosition = mMarker2.getPosition();
+
         mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
     }
 
